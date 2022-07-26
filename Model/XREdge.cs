@@ -1,16 +1,25 @@
-﻿namespace MoviesDotNetCore.Model
+﻿using System.Collections.Generic;
+
+namespace MoviesDotNetCore.Model
 {
     public class XREdge
     {
-        public string id { get; set; }
-        public string type { get; set; }
-        public string startNode { get; set; }
-        public string endNode { get; set; }
-        public Properties properties { get; set; }
+        public long EndNode { get; set; }
+        public long Id { get; set; }
+        public Dictionary<string, object> Properties { get; set; }
+        public long StartNode { get; set; }
+        public string Type { get; set; }
 
-        public class Properties
+        
+        
+
+        public XREdge(long endNode, long id, Dictionary<string, object> properties, long startNode, string type)
         {
-            public string type { get; set; }
+            Id = id;
+            StartNode = startNode;
+            EndNode = endNode;
+            Type = type;
+            Properties = properties;
         }
     }
 }

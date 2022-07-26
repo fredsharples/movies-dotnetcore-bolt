@@ -4,6 +4,7 @@ using System.Drawing.Printing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Microsoft.Extensions.Configuration.CommandLine;
 using MoviesDotNetCore.Model;
 using Neo4j.Driver;
 
@@ -43,7 +44,7 @@ namespace MoviesDotNetCore.Repositories
                                    job: head(split(toLower(type(r)),'_')),
                                    role: reduce(acc = '', role IN r.roles | acc + CASE WHEN acc='' THEN '' ELSE ', ' END + role)}
                                ) AS cast",
-                        new {title}
+                        new { title }
                     );
 
                     return await cursor.SingleAsync(record => new Movie(
@@ -68,7 +69,7 @@ namespace MoviesDotNetCore.Repositories
                     var cursor = await transaction.RunAsync(@"
                             MATCH (m:Movie {title: $title})
                             SET m.votes = coalesce(m.votes, 0) + 1;",
-                        new {title}
+                        new { title }
                     );
 
                     var summary = await cursor.ConsumeAsync();
@@ -95,7 +96,7 @@ namespace MoviesDotNetCore.Repositories
                                movie.released AS released,
                                movie.tagline AS tagline,
                                movie.votes AS votes",
-                        new {title = search}
+                        new { title = search }
                     );
 
                     return await cursor.ToListAsync(record => new Movie(
@@ -125,7 +126,7 @@ namespace MoviesDotNetCore.Repositories
                         ORDER BY m.title, p.name
                         RETURN m.title AS title, collect(p.name) AS cast
                         LIMIT $limit",
-                        new {limit}
+                        new { limit }
                     );
                     var nodes = new List<D3Node>();
                     var links = new List<D3Link>();
@@ -153,7 +154,7 @@ namespace MoviesDotNetCore.Repositories
             }
         }
 
-        public async Task<XRMovies> FetchRelated(int id)
+        public async Task<XRMovies> FetchRelated(string id)
         {
             var session = _driver.AsyncSession(WithDatabase);
             try
@@ -161,56 +162,41 @@ namespace MoviesDotNetCore.Repositories
                 return await session.ReadTransactionAsync(async transaction =>
                 {
                     var cursor = await transaction.RunAsync(@"
-                        MATCH (startNode)-[relationship]-(relatedNode) WHERE ID(startNode) = 12 RETURN startNode, relationship, relatedNode",
+                        MATCH (startNode)-[relationship]-(relatedNode) WHERE ID(startNode) = $id  RETURN startNode, relationship, relatedNode",
                         new { id }
                     );
                     var nodes = new List<XRNode>();
-                    var links = new List<XREdge>();
+                    var edges = new List<XREdge>();
                     var records = await cursor.ToListAsync();
                     Debug.Write(records);
-                    
+
                     foreach (var record in records)
                     {
-                        if (record["startNode"] != null)
-                        {
-                            var u = record["startNode"];
-                            long id = (long)u.GetType().GetProperty("Id").GetValue(u, null);
-                            List<string> labels = (List<string>)u.GetType().GetProperty("Labels").GetValue(u, null);
-                           // List<string> props = u.GetType().GetProperty("Properties").GetValue(u, null) as List<string>;
-                           Dictionary<string,object> props = u.GetType().GetProperty("Properties").GetValue(u, null) as Dictionary<string, object>;
-                           XRNode blah = new XRNode(id, labels, props);
-                        }
-                       // XRNode blah = new XRNode(record["Id"].ToString(), (List<string>)record["Labels"], (XRNode.Properties)record["Properties"]);
+                        var s = record["startNode"];
+                        long id = (long)s.GetType().GetProperty("Id")?.GetValue(s, null)!;
+                        List<string> labels = (List<string>)s.GetType().GetProperty("Labels")!.GetValue(s, null);
+                        Dictionary<string, object> props = s.GetType().GetProperty("Properties")!.GetValue(s, null) as Dictionary<string, object>;
+                        XRNode sNode = new XRNode(id, labels, props);
+                        nodes.Add(sNode);
 
-                        //XRNode blah = new XRNode(record["Id"].ToString(), (List<string>)record["Labels"], (XRNode.Properties)record["Properties"]);
-                        foreach (var r in record.Keys)
-                        {
-                          //  r.
-                           // XRNode node = new XRNode(r["Id"], r., (XRNode.Properties)record["Properties"]);
-                            if (r == "startNode")
-                            {
-                                //var z = record[r] as XRNode;
-                                var z = record[r];
-                                //string y = z.
-                              //  XRNode blah = new XRNode(z, z.Labels, z.Props);
-                                //var x = r.ToString();
-                               // XRNode blah = new XRNode(record["Id"].ToString(), (List<string>)record["Labels"], (XRNode.Properties)record["Properties"]);
-                            }
-                        }
-                        
-                        //XRNode blah = new XRNode(record["Id"].ToString(), (List<string>)record["Labels"], (XRNode.Properties)record["Properties"]);
-                        
-                        foreach (var r in record.Values)
-                        
-                        {
-                            //XRNode blah = new XRNode() { labels = r.Labels.ToList(), properties = r.Properties.ToList() };
-                           /* XRNode blah = new XRNode();
-                            blah.labels = r.Value.ToString();
-                            nodes.Add(blah);*/
-                        }
+                        var e = record["relatedNode"];
+                        long eId = (long)e.GetType().GetProperty("Id")?.GetValue(e, null)!;
+                        List<string> eLabels = (List<string>)e.GetType().GetProperty("Labels")!.GetValue(e, null);
+                        Dictionary<string, object> eProps = e.GetType().GetProperty("Properties")!.GetValue(e, null) as Dictionary<string, object>;
+                        XRNode eNode = new XRNode(eId, eLabels, eProps);
+                        nodes.Add(eNode);
+
+                        var r = record["relationship"];
+                        long rId = (long)r.GetType().GetProperty("Id")?.GetValue(r, null)!;
+                        long endNodeId = (long)r.GetType().GetProperty("EndNodeId")?.GetValue(r, null)!;
+                        long startNodeId = (long)r.GetType().GetProperty("StartNodeId")?.GetValue(r, null)!;
+                        Dictionary<string, object> rProps = r.GetType().GetProperty("Properties")!.GetValue(r, null) as Dictionary<string, object>;
+                        string rType = r.GetType().GetProperty("Type")?.GetValue(r, null) as string;
+                        XREdge edge = new XREdge(endNodeId, rId, rProps, startNodeId, rType);
+                        edges.Add(edge);
 
                     }
-                    return new XRMovies(nodes, links);
+                    return new XRMovies(nodes, edges);
                 });
             }
             finally
