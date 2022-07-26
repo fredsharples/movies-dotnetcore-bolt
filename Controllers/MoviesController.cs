@@ -47,7 +47,7 @@ namespace MoviesDotNetCore.Controllers
         
         [Route("/related")]
         [HttpGet]
-        public async Task<XRMovies> FetchRelated([FromRoute(Name = "id")] int id)
+        public async Task<XRGraph> FetchRelated([FromRoute(Name = "id")] int id)
         {
             return await _movieRepository.FetchRelated(id);
         }

@@ -16,7 +16,7 @@ namespace MoviesDotNetCore.Repositories
         Task<int> VoteByTitle(string title);
         Task<List<Movie>> Search(string search);
         Task<D3Graph> FetchD3Graph(int limit);
-        Task<XRMovies> FetchRelated(int id);
+        Task<XRGraph> FetchRelated(int id);
     }
 
     public class MovieRepository : IMovieRepository
@@ -154,7 +154,7 @@ namespace MoviesDotNetCore.Repositories
             }
         }
 
-        public async Task<XRMovies> FetchRelated(string id)
+        public async Task<XRGraph> FetchRelated(int id)
         {
             var session = _driver.AsyncSession(WithDatabase);
             try
@@ -196,7 +196,7 @@ namespace MoviesDotNetCore.Repositories
                         edges.Add(edge);
 
                     }
-                    return new XRMovies(nodes, edges);
+                    return new XRGraph(nodes, edges);
                 });
             }
             finally

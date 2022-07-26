@@ -2,9 +2,9 @@
 
 namespace MoviesDotNetCore.Model
 {
-    public class XRMovies
+    public class XRGraph
     {
-        public XRMovies(List<XRNode> nodes, List<XREdge> edges)
+        public XRGraph(List<XRNode> nodes, List<XREdge> edges)
         {
             NodesList = nodes;
             RelationshipsList = edges;
