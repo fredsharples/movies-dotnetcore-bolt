@@ -6,7 +6,7 @@ namespace MoviesDotNetCore.Model
     {
         public XRMovies(List<XRNode> nodes, List<XREdge> links)
         {
-            throw new System.NotImplementedException();
+            
         }
 
         public IEnumerable<XRNode> NodesList { get; set; }

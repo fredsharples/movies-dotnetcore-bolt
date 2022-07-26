@@ -6,9 +6,9 @@
         public string type { get; set; }
         public string startNode { get; set; }
         public string endNode { get; set; }
-        public Properties2 properties { get; set; }
+        public Properties properties { get; set; }
 
-        public class Properties2
+        public class Properties
         {
             public string type { get; set; }
         }

@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using MoviesDotNetCore.Model;
 using Neo4j.Driver;
 
@@ -158,16 +161,47 @@ namespace MoviesDotNetCore.Repositories
                 return await session.ReadTransactionAsync(async transaction =>
                 {
                     var cursor = await transaction.RunAsync(@"
-                        MATCH (startNode)-[relationship]-(relatedNodes) WHERE ID(startNode) = $id RETURN startNode, relationship, relatedNodes",
+                        MATCH (startNode)-[relationship]-(relatedNode) WHERE ID(startNode) = 12 RETURN startNode, relationship, relatedNode",
                         new { id }
                     );
                     var nodes = new List<XRNode>();
-                    
                     var links = new List<XREdge>();
                     var records = await cursor.ToListAsync();
+                    Debug.Write(records);
+                    
                     foreach (var record in records)
                     {
+                        if (record["startNode"] != null)
+                        {
+                            var u = record["startNode"];
+                            long id = (long)u.GetType().GetProperty("Id").GetValue(u, null);
+                            List<string> labels = (List<string>)u.GetType().GetProperty("Labels").GetValue(u, null);
+                           // List<string> props = u.GetType().GetProperty("Properties").GetValue(u, null) as List<string>;
+                           Dictionary<string,object> props = u.GetType().GetProperty("Properties").GetValue(u, null) as Dictionary<string, object>;
+                           XRNode blah = new XRNode(id, labels, props);
+                        }
+                       // XRNode blah = new XRNode(record["Id"].ToString(), (List<string>)record["Labels"], (XRNode.Properties)record["Properties"]);
+
+                        //XRNode blah = new XRNode(record["Id"].ToString(), (List<string>)record["Labels"], (XRNode.Properties)record["Properties"]);
+                        foreach (var r in record.Keys)
+                        {
+                          //  r.
+                           // XRNode node = new XRNode(r["Id"], r., (XRNode.Properties)record["Properties"]);
+                            if (r == "startNode")
+                            {
+                                //var z = record[r] as XRNode;
+                                var z = record[r];
+                                //string y = z.
+                              //  XRNode blah = new XRNode(z, z.Labels, z.Props);
+                                //var x = r.ToString();
+                               // XRNode blah = new XRNode(record["Id"].ToString(), (List<string>)record["Labels"], (XRNode.Properties)record["Properties"]);
+                            }
+                        }
+                        
+                        //XRNode blah = new XRNode(record["Id"].ToString(), (List<string>)record["Labels"], (XRNode.Properties)record["Properties"]);
+                        
                         foreach (var r in record.Values)
+                        
                         {
                             //XRNode blah = new XRNode() { labels = r.Labels.ToList(), properties = r.Properties.ToList() };
                            /* XRNode blah = new XRNode();

@@ -4,17 +4,16 @@ namespace MoviesDotNetCore.Model
 {
     public class XRNode
     {
-        public string id { get; set; }
-        public List<string> labels { get; set; }
-        public Properties properties { get; set; }
+        public long Id { get; set; }
+        public List<string> Labels { get; set; }
+        public Dictionary<string, object> Properties { get; set; }
 
-        public class Properties
-        {
-            public string tagline { get; set; }
-            public string title { get; set; }
-            public string released { get; set; }
-            public string born { get; set; }
-            public string name { get; set; }
+       
+        public XRNode(long id, List<string> labels, Dictionary<string, object> properties)
+        {   
+            Id = id;
+            Labels = labels;
+            Properties = properties;
         }
     }
 }
