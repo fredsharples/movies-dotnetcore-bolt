@@ -177,6 +177,12 @@ namespace MoviesDotNetCore.Repositories
                         List<string> labels = (List<string>)s.GetType().GetProperty("Labels")!.GetValue(s, null);
                         Dictionary<string, object> props = s.GetType().GetProperty("Properties")!.GetValue(s, null) as Dictionary<string, object>;
                         XRNode sNode = new XRNode(id, labels, props);
+                        bool nope = false;
+                        foreach (var n in nodes.Where(n => sNode.Id == n.Id))
+                        {
+                            nope = true;
+                        }
+                        if(!nope)
                         nodes.Add(sNode);
 
                         var e = record["relatedNode"];
