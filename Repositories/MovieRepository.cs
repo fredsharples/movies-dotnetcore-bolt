@@ -12,6 +12,7 @@ namespace MoviesDotNetCore.Repositories
         Task<int> VoteByTitle(string title);
         Task<List<Movie>> Search(string search);
         Task<D3Graph> FetchD3Graph(int limit);
+        Task<XRMovies> FetchRelated(int id);
     }
 
     public class MovieRepository : IMovieRepository
@@ -141,6 +142,41 @@ namespace MoviesDotNetCore.Repositories
                         }
                     }
                     return new D3Graph(nodes, links);
+                });
+            }
+            finally
+            {
+                await session.CloseAsync();
+            }
+        }
+
+        public async Task<XRMovies> FetchRelated(int id)
+        {
+            var session = _driver.AsyncSession(WithDatabase);
+            try
+            {
+                return await session.ReadTransactionAsync(async transaction =>
+                {
+                    var cursor = await transaction.RunAsync(@"
+                        MATCH (startNode)-[relationship]-(relatedNodes) WHERE ID(startNode) = $id RETURN startNode, relationship, relatedNodes",
+                        new { id }
+                    );
+                    var nodes = new List<XRNode>();
+                    
+                    var links = new List<XREdge>();
+                    var records = await cursor.ToListAsync();
+                    foreach (var record in records)
+                    {
+                        foreach (var r in record.Values)
+                        {
+                            //XRNode blah = new XRNode() { labels = r.Labels.ToList(), properties = r.Properties.ToList() };
+                           /* XRNode blah = new XRNode();
+                            blah.labels = r.Value.ToString();
+                            nodes.Add(blah);*/
+                        }
+
+                    }
+                    return new XRMovies(nodes, links);
                 });
             }
             finally

@@ -44,5 +44,13 @@ namespace MoviesDotNetCore.Controllers
         {
             return await _movieRepository.FetchD3Graph(limit <= 0 ? 50 : limit);
         }
+        
+        [Route("/related")]
+        [HttpGet]
+        public async Task<XRMovies> FetchRelated([FromRoute(Name = "id")] int id)
+        {
+            return await _movieRepository.FetchRelated(id);
+        }
+
     }
 }
