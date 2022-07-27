@@ -51,6 +51,12 @@ namespace MoviesDotNetCore.Controllers
         {
             return await _movieRepository.FetchRelated(id);
         }
+        [Route("/cypher")]
+        [HttpGet]
+        public async Task<XRGraph> CypherCall([FromQuery(Name = "query")] string cypherQuery)
+        {
+            return await _movieRepository.CypherCall(cypherQuery);
+        }
 
     }
 }

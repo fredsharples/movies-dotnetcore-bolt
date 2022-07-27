@@ -17,6 +17,7 @@ namespace MoviesDotNetCore.Repositories
         Task<List<Movie>> Search(string search);
         Task<D3Graph> FetchD3Graph(int limit);
         Task<XRGraph> FetchRelated(int id);
+        Task<XRGraph> CypherCall(string cypherQuery);
     }
 
     public class MovieRepository : IMovieRepository
@@ -153,7 +154,7 @@ namespace MoviesDotNetCore.Repositories
                 await session.CloseAsync();
             }
         }
-
+        //Return all related nodes of a given node Id
         public async Task<XRGraph> FetchRelated(int id)
         {
             var session = _driver.AsyncSession(WithDatabase);
@@ -177,13 +178,73 @@ namespace MoviesDotNetCore.Repositories
                         List<string> labels = (List<string>)s.GetType().GetProperty("Labels")!.GetValue(s, null);
                         Dictionary<string, object> props = s.GetType().GetProperty("Properties")!.GetValue(s, null) as Dictionary<string, object>;
                         XRNode sNode = new XRNode(id, labels, props);
+
+                        //Make sure we don't add duplicate startNodes.
                         bool nope = false;
                         foreach (var n in nodes.Where(n => sNode.Id == n.Id))
                         {
                             nope = true;
                         }
-                        if(!nope)
-                        nodes.Add(sNode);
+                        if (!nope)
+                            nodes.Add(sNode);
+
+                        var e = record["relatedNode"];
+                        long eId = (long)e.GetType().GetProperty("Id")?.GetValue(e, null)!;
+                        List<string> eLabels = (List<string>)e.GetType().GetProperty("Labels")!.GetValue(e, null);
+                        Dictionary<string, object> eProps = e.GetType().GetProperty("Properties")!.GetValue(e, null) as Dictionary<string, object>;
+                        XRNode eNode = new XRNode(eId, eLabels, eProps);
+                        nodes.Add(eNode);
+
+                        var r = record["relationship"];
+                        long rId = (long)r.GetType().GetProperty("Id")?.GetValue(r, null)!;
+                        long endNodeId = (long)r.GetType().GetProperty("EndNodeId")?.GetValue(r, null)!;
+                        long startNodeId = (long)r.GetType().GetProperty("StartNodeId")?.GetValue(r, null)!;
+                        Dictionary<string, object> rProps = r.GetType().GetProperty("Properties")!.GetValue(r, null) as Dictionary<string, object>;
+                        string rType = r.GetType().GetProperty("Type")?.GetValue(r, null) as string;
+                        XREdge edge = new XREdge(endNodeId, rId, rProps, startNodeId, rType);
+                        edges.Add(edge);
+
+                    }
+                    return new XRGraph(nodes, edges);
+                });
+            }
+            finally
+            {
+                await session.CloseAsync();
+            }
+        }
+
+        public async Task<XRGraph> CypherCall(string cypherQuery)
+        {
+            var session = _driver.AsyncSession(WithDatabase);
+            try
+            {
+                return await session.ReadTransactionAsync(async transaction =>
+                {
+                    var cursor = await transaction.RunAsync(@"
+                        $cypherQuery",
+                        new { cypherQuery }
+                    );
+                    var nodes = new List<XRNode>();
+                    var edges = new List<XREdge>();
+                    var records = await cursor.ToListAsync();
+
+                    foreach (var record in records)
+                    {
+                        var s = record["startNode"];
+                        long id = (long)s.GetType().GetProperty("Id")?.GetValue(s, null)!;
+                        List<string> labels = (List<string>)s.GetType().GetProperty("Labels")!.GetValue(s, null);
+                        Dictionary<string, object> props = s.GetType().GetProperty("Properties")!.GetValue(s, null) as Dictionary<string, object>;
+                        XRNode sNode = new XRNode(id, labels, props);
+
+                        //Make sure we don't add duplicate startNodes.
+                        bool nope = false;
+                        foreach (var n in nodes.Where(n => sNode.Id == n.Id))
+                        {
+                            nope = true;
+                        }
+                        if (!nope)
+                            nodes.Add(sNode);
 
                         var e = record["relatedNode"];
                         long eId = (long)e.GetType().GetProperty("Id")?.GetValue(e, null)!;
